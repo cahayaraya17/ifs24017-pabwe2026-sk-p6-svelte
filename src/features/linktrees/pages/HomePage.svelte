@@ -1,162 +1,233 @@
 <script>
   import { onMount } from "svelte";
-  import { Plus, Search, Trash2, Link2 } from "lucide-svelte";
-  import { authProfile } from "../../auth/states/authStore.js";
+  import { Plus, Trash2, Search, ExternalLink, Globe, EyeOff, Lock, User } from "lucide-svelte";
+  import { authStore } from "../../auth/states/authStore";
+  import { usersStore } from "../../users/states/usersStore";
+  import { navigate } from "../../../router";
   import {
-    linkTrees,
-    isLoading,
-    filterMine,
-    fetchLinkTrees,
-    deleteLinkTree,
-    deleteAllLinkTrees,
-  } from "../states/linkTreesStore.js";
-  import { TYPE_META } from "../linkTreeTypes.js";
-  import {
-    showConfirmDialog,
-    formatDate,
-    resolveAssetUrl,
-    hasImage,
-  } from "../../../helpers/toolsHelper.js";
-  import NavLink from "../../common/components/NavLink.svelte";
-  import Avatar from "../../common/components/Avatar.svelte";
+    linkTreesStore,
+    asyncSetIsLinkTreesGet,
+    asyncSetIsLinkTreeDeleteAll
+  } from "../states/linkTreesStore";
+  import { getImageUrl } from "../../../helpers/toolsHelper";
   import AddModal from "../modals/AddModal.svelte";
 
-  let query = $state("");
-  let showAdd = $state(false);
+  let showAddModal = false;
+  let searchQuery = "";
+  let onlyMyTrees = false;
 
-  const filtered = $derived(
-    $linkTrees.filter((tree) =>
-      `${tree.title} ${tree.description}`.toLowerCase().includes(query.toLowerCase())
-    )
-  );
-
-  const countType = (type) => $linkTrees.filter((tree) => tree.type === type).length;
-  const stats = $derived([
-    { label: "Total", value: $linkTrees.length },
-    { label: "Publik", value: countType("public") },
-    { label: "Tidak Terdaftar", value: countType("unlisted") },
-    { label: "Privat", value: countType("private") },
-    { label: "Total Tautan", value: $linkTrees.reduce((sum, tree) => sum + tree.total_links, 0) },
-  ]);
-
-  onMount(() => {
-    fetchLinkTrees();
+  onMount(async () => {
+    await Promise.all([asyncSetIsLinkTreesGet(), usersStore.asyncSetUsers()]);
   });
 
-  function toggleMine(event) {
-    filterMine.set(event.target.checked);
-    fetchLinkTrees();
+  // Peta id pengguna -> nama, dipakai bila data link tree hanya membawa user_id
+  $: userNames = Object.fromEntries(
+    (Array.isArray($usersStore?.users) ? $usersStore.users : []).map((u) => [u.id, u.name])
+  );
+
+  function ownerName(item, names) {
+    return (
+      item.user?.name ||
+      item.author_name ||
+      item.username ||
+      names[item.user_id] ||
+      (item.user_id ? `User #${item.user_id}` : "Pengguna")
+    );
   }
 
-  async function handleDelete(tree) {
-    const confirmed = await showConfirmDialog(`Hapus link tree "${tree.title}"?`);
-    if (confirmed) await deleteLinkTree(tree.id);
+  function openTree(e, id) {
+    e.preventDefault();
+    navigate(`/link-trees/${id}`);
   }
+
+  $: list = Array.isArray($linkTreesStore)
+    ? $linkTreesStore
+    : Array.isArray($linkTreesStore?.linkTrees)
+      ? $linkTreesStore.linkTrees
+      : [];
+
+  $: publicCount = list.filter((item) => item.type === "public").length;
+  $: unlistedCount = list.filter((item) => item.type === "unlisted").length;
+  $: privateCount = list.filter((item) => item.type === "private").length;
+
+  $: filteredLinkTrees = list.filter((item) => {
+    const q = (searchQuery || "").toLowerCase();
+    const matchSearch = (item.title || "").toLowerCase().includes(q) ||
+                        (item.description || "").toLowerCase().includes(q) ||
+                        (item.user?.name || userNames[item.user_id] || "").toLowerCase().includes(q);
+    const matchOwner = onlyMyTrees ? item.user_id === $authStore?.profile?.id : true;
+    return matchSearch && matchOwner;
+  });
 
   async function handleDeleteAll() {
-    const confirmed = await showConfirmDialog(
-      "Hapus SEMUA link tree milikmu? Tindakan ini tidak dapat dibatalkan."
-    );
-    if (confirmed) await deleteAllLinkTrees();
+    if (confirm("Apakah Anda yakin ingin menghapus semua Link Tree?")) {
+      if (linkTreesStore.asyncSetIsLinkTreeDeleteAll) {
+        await linkTreesStore.asyncSetIsLinkTreeDeleteAll();
+      } else {
+        await asyncSetIsLinkTreeDeleteAll();
+      }
+    }
   }
 </script>
 
-<div class="space-y-5">
-  <div class="flex flex-wrap items-center justify-between gap-3">
-    <h1 class="text-2xl font-extrabold">Semua Link Tree</h1>
-    <div class="flex gap-2">
-      <button
-        type="button"
-        onclick={handleDeleteAll}
-        class="inline-flex items-center gap-1.5 rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
-      >
-        <Trash2 size={16} /> Hapus Semua
-      </button>
-      <button
-        type="button"
-        onclick={() => (showAdd = true)}
-        class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
-      >
-        <Plus size={16} /> Tambah
-      </button>
+<div class="space-y-6">
+  <div class="flex items-center justify-between border-b border-rose-100 pb-4 dark:border-slate-800">
+    <div>
+      <h2 class="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">Daftar LinkTrees</h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400">Jelajahi dan kelola tautan publik dan pribadi Anda.</p>
     </div>
   </div>
 
-  <div class="grid grid-cols-2 gap-3 sm:grid-cols-5">
-    {#each stats as stat (stat.label)}
-      <div class="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
-        <p class="text-xs font-medium text-slate-600">{stat.label}</p>
-        <p class="text-2xl font-extrabold">{stat.value}</p>
+  <!-- Statistik Grid -->
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <div class="flex items-center gap-4 rounded-2xl border border-rose-100 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+      <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-pink-50 text-pink-600 dark:bg-pink-950/40 dark:text-pink-400">
+        <Globe class="h-6 w-6" />
       </div>
-    {/each}
-  </div>
-
-  <div class="flex flex-wrap items-center gap-4">
-    <div class="relative min-w-60 flex-1">
-      <Search size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" />
-      <input
-        type="search"
-        placeholder="Cari link tree..."
-        aria-label="Cari link tree"
-        bind:value={query}
-        class="w-full rounded-xl border border-slate-300 py-2 pl-9 pr-3 text-sm"
-      />
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Public</p>
+        <h4 class="text-2xl font-extrabold text-slate-800 dark:text-white">{publicCount}</h4>
+      </div>
     </div>
-    <label class="inline-flex items-center gap-2 text-sm font-medium">
-      <input type="checkbox" checked={$filterMine} onchange={toggleMine} />
-      Milik saya
-    </label>
+
+    <div class="flex items-center gap-4 rounded-xl border border-rose-100 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+      <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-rose-50 text-rose-500 dark:bg-rose-950/40 dark:text-rose-400">
+        <EyeOff class="h-6 w-6" />
+      </div>
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Unlisted</p>
+        <h4 class="text-2xl font-extrabold text-slate-800 dark:text-white">{unlistedCount}</h4>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-4 rounded-xl border border-rose-100 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+      <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400">
+        <Lock class="h-6 w-6" />
+      </div>
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Private</p>
+        <h4 class="text-2xl font-extrabold text-slate-800 dark:text-white">{privateCount}</h4>
+      </div>
+    </div>
   </div>
 
-  {#if $isLoading}
-    <p class="py-10 text-center text-slate-600">Memuat data...</p>
-  {:else if filtered.length === 0}
-    <p class="py-10 text-center text-slate-600">Belum ada link tree.</p>
+  <!-- Filter & Actions Bar -->
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex flex-1 flex-wrap items-center gap-3">
+      <div class="relative min-w-[240px] flex-1">
+        <Search class="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-pink-400" />
+        <input
+          type="text"
+          placeholder="Cari Link Tree..."
+          bind:value={searchQuery}
+          class="w-full rounded-xl border border-rose-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-800 placeholder-slate-400 shadow-xs focus:border-pink-500 focus:outline-none focus:ring-2 focus:ring-pink-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+        />
+      </div>
+
+      <label class="flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
+        <input
+          type="checkbox"
+          bind:checked={onlyMyTrees}
+          class="h-4 w-4 rounded border-rose-300 text-pink-600 focus:ring-pink-400 cursor-pointer"
+        />
+        Hanya Milik Saya
+      </label>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-pink-200 hover:from-pink-600 hover:to-rose-600 transition cursor-pointer dark:shadow-none"
+        on:click={() => (showAddModal = true)}
+      >
+        <Plus class="h-4 w-4 stroke-[2.5]" />
+        Tambah Link Tree
+      </button>
+
+      <button
+        type="button"
+        class="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition cursor-pointer dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-rose-950/30"
+        on:click={handleDeleteAll}
+      >
+        <Trash2 class="h-4 w-4" />
+        Hapus Semua
+      </button>
+    </div>
+  </div>
+
+  <!-- Cards Grid -->
+  {#if filteredLinkTrees.length === 0}
+    <div class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-rose-200 bg-rose-50/20 p-16 text-center dark:border-slate-800">
+      <Globe class="h-10 w-10 text-pink-300" />
+      <p class="mt-3 text-sm font-semibold text-slate-700 dark:text-slate-200">Tidak ada Link Tree yang ditemukan.</p>
+      <p class="text-xs text-slate-400">Mulai buat Link Tree pertama Anda dengan tombol di atas.</p>
+    </div>
   {:else}
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {#each filtered as tree (tree.id)}
-        {@const meta = TYPE_META[tree.type]}
-        <article class="overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200">
-          {#if hasImage(tree.cover)}
-            <img src={resolveAssetUrl(tree.cover)} alt={`Sampul ${tree.title}`} class="h-32 w-full object-cover" />
-          {:else}
-            <div class="flex h-32 items-center justify-center bg-gradient-to-br from-indigo-600 to-violet-600 text-white">
-              <Link2 size={36} />
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {#each filteredLinkTrees as item (item.id)}
+        <div class="group flex flex-col justify-between overflow-hidden rounded-2xl border border-rose-100 bg-white shadow-xs transition-all duration-200 hover:-translate-y-1 hover:border-pink-300 hover:shadow-lg hover:shadow-pink-500/10 dark:border-slate-800 dark:bg-slate-900">
+          
+          {#if item.cover}
+            <div class="relative h-40 w-full overflow-hidden bg-rose-100 dark:bg-slate-800">
+              <img
+                src={getImageUrl(item.cover)}
+                alt={item.title}
+                class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                on:error={(e) => { e.currentTarget.parentElement.style.display = 'none'; }}
+              />
             </div>
           {/if}
-          <div class="space-y-2 p-4">
-            <div class="flex items-start justify-between gap-2">
-              <NavLink href={`/link-trees/${tree.id}`} class="font-bold hover:text-indigo-600">
-                {tree.title}
-              </NavLink>
-              <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold {meta.badge}">
-                <meta.icon size={12} /> {meta.label}
-              </span>
+
+          <div class="p-5 flex-1 flex flex-col justify-between">
+            <div>
+              <div class="flex items-start justify-between gap-2">
+                <h3 class="text-base font-bold text-slate-800 group-hover:text-pink-600 transition dark:text-slate-100 line-clamp-1">
+                  {item.title}
+                </h3>
+                <span
+                  class="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider {
+                    item.type === 'public'
+                      ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300'
+                      : item.type === 'unlisted'
+                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                        : 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300'
+                  }"
+                >
+                  {item.type}
+                </span>
+              </div>
+
+              {#if item.description}
+                <p class="mt-2 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+                  {item.description}
+                </p>
+              {/if}
             </div>
-            <p class="line-clamp-2 text-sm text-slate-600">{tree.description}</p>
-            <div class="flex items-center gap-2 text-xs text-slate-600">
-              <Avatar name={tree.author.name} photo={tree.author.photo} size="h-6 w-6" />
-              <span>{tree.author.name}</span>
-              <span>· {tree.total_links} tautan</span>
-              <span>· {formatDate(tree.created_at)}</span>
+
+            <div class="mt-5 border-t border-rose-50 pt-3 dark:border-slate-800">
+              <div class="flex items-center justify-between text-xs text-slate-400">
+                <div class="flex items-center gap-1.5 min-w-0">
+                  <User class="h-3.5 w-3.5 shrink-0 text-pink-500" />
+                  <span class="truncate font-medium text-slate-600 dark:text-slate-300">
+                    {ownerName(item, userNames)}
+                  </span>
+                </div>
+
+                <a
+                  href={`/link-trees/${item.id}`}
+                  on:click={(e) => openTree(e, item.id)}
+                  class="inline-flex items-center gap-1 font-bold text-pink-600 hover:text-pink-700 dark:text-pink-400"
+                >
+                  Buka
+                  <ExternalLink class="h-3.5 w-3.5" />
+                </a>
+              </div>
             </div>
-            {#if tree.user_id === $authProfile.id}
-              <button
-                type="button"
-                aria-label={`Hapus ${tree.title}`}
-                onclick={() => handleDelete(tree)}
-                class="inline-flex items-center gap-1 text-xs font-semibold text-red-700 hover:underline"
-              >
-                <Trash2 size={14} /> Hapus
-              </button>
-            {/if}
           </div>
-        </article>
+        </div>
       {/each}
     </div>
   {/if}
 </div>
 
-{#if showAdd}
-  <AddModal onclose={() => (showAdd = false)} />
-{/if}
+<AddModal show={showAddModal} on:close={() => (showAddModal = false)} />

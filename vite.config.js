@@ -1,4 +1,4 @@
-import { defineConfig, loadEnv } from "vite";
+﻿import { defineConfig, loadEnv } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { svelteTesting } from "@testing-library/svelte/vite";
 import tailwindcss from "@tailwindcss/vite";
@@ -6,7 +6,6 @@ import process from "process";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const baseUrl = env.VITE_DELCOM_BASEURL || "https://open-api.delcom.org/api/v1";
 
   return {
     plugins: [
@@ -26,11 +25,9 @@ export default defineConfig(({ mode }) => {
       chunkSizeWarningLimit: 1500,
     },
     define: {
-      // Dipakai untuk membentuk URL aset (gambar) — selalu absolut.
-      DELCOM_BASEURL: JSON.stringify(baseUrl),
-      // Dipakai untuk request API. Di production lewat proxy same-origin (/delcom-api,
-      // lihat vercel.json) sehingga tidak ada request lintas-origin/CORS preflight.
-      DELCOM_API_URL: JSON.stringify(mode === "production" ? "/delcom-api" : baseUrl),
+      DELCOM_BASEURL: JSON.stringify(
+        env.VITE_DELCOM_BASEURL || "https://open-api.delcom.org/api/v1"
+      ),
     },
     test: {
       globals: true,
@@ -58,3 +55,4 @@ export default defineConfig(({ mode }) => {
     },
   };
 });
+

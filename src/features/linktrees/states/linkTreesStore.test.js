@@ -1,101 +1,241 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { get } from "svelte/store";
+import { useLinkTreesStore, linkTreesStore } from "./linkTreesStore";
+import linkTreeApi from "../api/linkTreeApi";
+import * as toolsHelper from "../../../helpers/toolsHelper";
 
-vi.mock("../api/linkTreeApi.js", () => ({
-  getLinkTrees: vi.fn(),
-  getLinkTree: vi.fn(),
-  postLinkTree: vi.fn(),
-  putLinkTree: vi.fn(),
-  postCover: vi.fn(),
-  deleteLinkTree: vi.fn(),
-  deleteAllLinkTrees: vi.fn(),
-  postItem: vi.fn(),
-  putItem: vi.fn(),
-  deleteItem: vi.fn(),
-}));
-vi.mock("../../../helpers/toolsHelper.js", () => ({
-  showErrorDialog: vi.fn(),
-  showSuccessDialog: vi.fn(),
-}));
-
-import * as api from "../api/linkTreeApi.js";
-import { showErrorDialog, showSuccessDialog } from "../../../helpers/toolsHelper.js";
-import * as store from "./linkTreesStore.js";
-
-const ok = (extra) => ({ status: "success", message: "Berhasil", ...extra });
-const fail = { status: "fail", message: "Data tidak valid", data: { title: ["Judul wajib"] } };
-const file = new File(["x"], "c.png");
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  store.linkTrees.set([]);
-  store.linkTree.set(null);
-  store.filterMine.set(false);
-  api.getLinkTrees.mockResolvedValue(ok({ data: { link_trees: [{ id: 1 }] } }));
-  api.getLinkTree.mockResolvedValue(ok({ data: { link_tree: { id: 5, items: [] } } }));
-});
-
-describe("fetchLinkTrees", () => {
-  it("berhasil mengikuti filterMine", async () => {
-    store.filterMine.set(true);
-    expect(await store.fetchLinkTrees()).toBe(true);
-    expect(api.getLinkTrees).toHaveBeenCalledWith(true);
-    expect(get(store.linkTrees)).toEqual([{ id: 1 }]);
-    expect(get(store.isLoading)).toBe(false);
+describe("linkTreesStore", () => {
+  beforeEach(() => {
+    linkTreesStore.reset();
+    vi.restoreAllMocks();
   });
 
-  it("gagal mengosongkan koleksi", async () => {
-    store.linkTrees.set([{ id: 9 }]);
-    api.getLinkTrees.mockResolvedValue(fail);
-    expect(await store.fetchLinkTrees()).toBe(false);
-    expect(get(store.linkTrees)).toEqual([]);
-    expect(showErrorDialog).toHaveBeenCalledWith("Data tidak valid\nJudul wajib");
-  });
-});
-
-describe("fetchLinkTree", () => {
-  it("berhasil", async () => {
-    expect(await store.fetchLinkTree(5)).toBe(true);
-    expect(get(store.linkTree)).toEqual({ id: 5, items: [] });
-    expect(get(store.isDetailLoading)).toBe(false);
-  });
-
-  it("gagal mengosongkan detail", async () => {
-    store.linkTree.set({ id: 1 });
-    api.getLinkTree.mockResolvedValue(fail);
-    expect(await store.fetchLinkTree(5)).toBe(false);
-    expect(get(store.linkTree)).toBeNull();
-    expect(showErrorDialog).toHaveBeenCalled();
-  });
-});
-
-// [nama aksi, argumen, fungsi API, flag, fungsi yang dipanggil ulang]
-const mutations = [
-  ["addLinkTree", [{ title: "T" }], "postLinkTree", "isAdding", "getLinkTrees"],
-  ["changeLinkTree", [5, { title: "T" }], "putLinkTree", "isChanging", "getLinkTree"],
-  ["changeCover", [5, file], "postCover", "isChangingCover", "getLinkTree"],
-  ["deleteLinkTree", [5], "deleteLinkTree", "isDeleting", "getLinkTrees"],
-  ["deleteAllLinkTrees", [], "deleteAllLinkTrees", "isDeletingAll", "getLinkTrees"],
-  ["addItem", [5, { title: "A", url: "u" }], "postItem", "isItemMutating", "getLinkTree"],
-  ["changeItem", [5, 9, { title: "A", url: "u" }], "putItem", "isItemMutating", "getLinkTree"],
-  ["deleteItem", [5, 9], "deleteItem", "isItemMutating", "getLinkTree"],
-];
-
-describe.each(mutations)("%s", (action, args, apiFn, flag, refetch) => {
-  it("berhasil: dialog sukses lalu muat ulang data", async () => {
-    api[apiFn].mockResolvedValue(ok());
-    expect(await store[action](...args)).toBe(true);
-    expect(api[apiFn]).toHaveBeenCalledWith(...args);
-    expect(showSuccessDialog).toHaveBeenCalledWith("Berhasil");
-    expect(api[refetch]).toHaveBeenCalled();
-    expect(get(store[flag])).toBe(false);
+  it("should have correct default state", () => {
+    const store = useLinkTreesStore();
+    expect(store.linkTrees).toEqual([]);
+    expect(store.linkTree).toBeNull();
+    expect(store.isLinkTree).toBe(false);
+    expect(store.isLinkTreeAdd).toBe(false);
+    expect(store.isLinkTreeAdded).toBe(false);
+    expect(store.isLinkTreeChange).toBe(false);
+    expect(store.isLinkTreeChanged).toBe(false);
+    expect(store.isLinkTreeChangeCover).toBe(false);
+    expect(store.isLinkTreeChangedCover).toBe(false);
+    expect(store.isLinkTreeDelete).toBe(false);
+    expect(store.isLinkTreeDeleted).toBe(false);
   });
 
-  it("gagal: dialog error dan tidak memuat ulang", async () => {
-    api[apiFn].mockResolvedValue(fail);
-    expect(await store[action](...args)).toBe(false);
-    expect(showErrorDialog).toHaveBeenCalledWith("Data tidak valid\nJudul wajib");
-    expect(api[refetch]).not.toHaveBeenCalled();
-    expect(get(store[flag])).toBe(false);
+  it("should update state with setters", () => {
+    const store = useLinkTreesStore();
+    store.setLinkTrees([{ id: 1 }]);
+    expect(store.linkTrees).toEqual([{ id: 1 }]);
+
+    store.setLinkTree({ id: 1 });
+    expect(store.linkTree).toEqual({ id: 1 });
+
+    store.setIsLinkTree(true);
+    expect(store.isLinkTree).toBe(true);
+
+    store.setIsLinkTreeAdd(true);
+    expect(store.isLinkTreeAdd).toBe(true);
+
+    store.setIsLinkTreeAdded(true);
+    expect(store.isLinkTreeAdded).toBe(true);
+
+    store.setIsLinkTreeChange(true);
+    expect(store.isLinkTreeChange).toBe(true);
+
+    store.setIsLinkTreeChanged(true);
+    expect(store.isLinkTreeChanged).toBe(true);
+
+    store.setIsLinkTreeChangeCover(true);
+    expect(store.isLinkTreeChangeCover).toBe(true);
+
+    store.setIsLinkTreeChangedCover(true);
+    expect(store.isLinkTreeChangedCover).toBe(true);
+
+    store.setIsLinkTreeDelete(true);
+    expect(store.isLinkTreeDelete).toBe(true);
+
+    store.setIsLinkTreeDeleted(true);
+    expect(store.isLinkTreeDeleted).toBe(true);
+  });
+
+  describe("asyncSetLinkTrees", () => {
+    it("should set linkTrees on success", async () => {
+      const store = useLinkTreesStore();
+      vi.spyOn(linkTreeApi, "getLinkTrees").mockResolvedValue([{ id: 1 }]);
+
+      await store.asyncSetLinkTrees("1");
+
+      expect(store.linkTrees).toEqual([{ id: 1 }]);
+    });
+
+    it("should set empty array on error", async () => {
+      const store = useLinkTreesStore();
+      vi.spyOn(linkTreeApi, "getLinkTrees").mockRejectedValue(new Error("Err"));
+
+      await store.asyncSetLinkTrees();
+
+      expect(store.linkTrees).toEqual([]);
+    });
+  });
+
+  describe("asyncSetLinkTree", () => {
+    it("should set linkTree and setIsLinkTree on success", async () => {
+      const store = useLinkTreesStore();
+      vi.spyOn(linkTreeApi, "getLinkTreeById").mockResolvedValue({ id: 1 });
+
+      await store.asyncSetLinkTree(1);
+
+      expect(store.linkTree).toEqual({ id: 1 });
+      expect(store.isLinkTree).toBe(true);
+    });
+
+    it("should set null and setIsLinkTree on error", async () => {
+      const store = useLinkTreesStore();
+      vi.spyOn(linkTreeApi, "getLinkTreeById").mockRejectedValue(new Error("Err"));
+
+      await store.asyncSetLinkTree(99);
+
+      expect(store.linkTree).toBeNull();
+      expect(store.isLinkTree).toBe(true);
+    });
+  });
+
+  describe("asyncSetIsLinkTreeAdd", () => {
+    it("should post linkTree, show success dialog, and set flags on success", async () => {
+      const store = useLinkTreesStore();
+      vi.spyOn(linkTreeApi, "postLinkTree").mockResolvedValue({ linkTree_id: 1 });
+      const successSpy = vi.spyOn(toolsHelper, "showSuccessDialog").mockImplementation(() => {});
+
+      await store.asyncSetIsLinkTreeAdd("Title", "Desc");
+
+      expect(successSpy).toHaveBeenCalledWith("LinkTree berhasil ditambahkan!");
+      expect(store.isLinkTreeAdded).toBe(true);
+      expect(store.isLinkTreeAdd).toBe(true);
+    });
+
+    it("should show error dialog and set flags on failure", async () => {
+      const store = useLinkTreesStore();
+      vi.spyOn(linkTreeApi, "postLinkTree").mockRejectedValue(new Error("Gagal tambah"));
+      const errorSpy = vi.spyOn(toolsHelper, "showErrorDialog").mockImplementation(() => {});
+
+      await store.asyncSetIsLinkTreeAdd("Title", "Desc");
+
+      expect(errorSpy).toHaveBeenCalledWith("Gagal tambah");
+      expect(store.isLinkTreeAdded).toBe(false);
+      expect(store.isLinkTreeAdd).toBe(true);
+    });
+  });
+
+  describe("asyncSetIsLinkTreeChange", () => {
+    it("should update linkTree, show success dialog, and set flags on success", async () => {
+      const store = useLinkTreesStore();
+      vi.spyOn(linkTreeApi, "putLinkTree").mockResolvedValue("LinkTree diubah");
+      const successSpy = vi.spyOn(toolsHelper, "showSuccessDialog").mockImplementation(() => {});
+
+      await store.asyncSetIsLinkTreeChange(1, "Title", "Desc", true);
+
+      expect(successSpy).toHaveBeenCalledWith("LinkTree diubah");
+      expect(store.isLinkTreeChanged).toBe(true);
+      expect(store.isLinkTreeChange).toBe(true);
+    });
+
+    it("should use fallback success message when api returns empty string", async () => {
+      const store = useLinkTreesStore();
+      vi.spyOn(linkTreeApi, "putLinkTree").mockResolvedValue("");
+      const successSpy = vi.spyOn(toolsHelper, "showSuccessDialog").mockImplementation(() => {});
+
+      await store.asyncSetIsLinkTreeChange(1, "Title", "Desc", true);
+
+      expect(successSpy).toHaveBeenCalledWith("LinkTree berhasil diperbarui!");
+    });
+
+    it("should show error dialog and set flags on failure", async () => {
+      const store = useLinkTreesStore();
+      vi.spyOn(linkTreeApi, "putLinkTree").mockRejectedValue(new Error("Gagal update"));
+      const errorSpy = vi.spyOn(toolsHelper, "showErrorDialog").mockImplementation(() => {});
+
+      await store.asyncSetIsLinkTreeChange(1, "Title", "Desc", true);
+
+      expect(errorSpy).toHaveBeenCalledWith("Gagal update");
+      expect(store.isLinkTreeChanged).toBe(false);
+      expect(store.isLinkTreeChange).toBe(true);
+    });
+  });
+
+  describe("asyncSetIsLinkTreeChangeCover", () => {
+    it("should upload cover, show success dialog, and set flags on success", async () => {
+      const store = useLinkTreesStore();
+      vi.spyOn(linkTreeApi, "postLinkTreeCover").mockResolvedValue("Cover diubah");
+      const successSpy = vi.spyOn(toolsHelper, "showSuccessDialog").mockImplementation(() => {});
+
+      const dummyFile = new File([""], "cover.jpg");
+      await store.asyncSetIsLinkTreeChangeCover(1, dummyFile);
+
+      expect(successSpy).toHaveBeenCalledWith("Cover diubah");
+      expect(store.isLinkTreeChangedCover).toBe(true);
+      expect(store.isLinkTreeChangeCover).toBe(true);
+    });
+
+    it("should use fallback success message if empty", async () => {
+      const store = useLinkTreesStore();
+      vi.spyOn(linkTreeApi, "postLinkTreeCover").mockResolvedValue("");
+      const successSpy = vi.spyOn(toolsHelper, "showSuccessDialog").mockImplementation(() => {});
+
+      const dummyFile = new File([""], "cover.jpg");
+      await store.asyncSetIsLinkTreeChangeCover(1, dummyFile);
+
+      expect(successSpy).toHaveBeenCalledWith("Cover berhasil diperbarui!");
+    });
+
+    it("should show error dialog and set flags on failure", async () => {
+      const store = useLinkTreesStore();
+      vi.spyOn(linkTreeApi, "postLinkTreeCover").mockRejectedValue(new Error("File corrupt"));
+      const errorSpy = vi.spyOn(toolsHelper, "showErrorDialog").mockImplementation(() => {});
+
+      const dummyFile = new File([""], "cover.jpg");
+      await store.asyncSetIsLinkTreeChangeCover(1, dummyFile);
+
+      expect(errorSpy).toHaveBeenCalledWith("File corrupt");
+      expect(store.isLinkTreeChangedCover).toBe(false);
+      expect(store.isLinkTreeChangeCover).toBe(true);
+    });
+  });
+
+  describe("asyncSetIsLinkTreeDelete", () => {
+    it("should delete linkTree, show success dialog, and set flags on success", async () => {
+      const store = useLinkTreesStore();
+      vi.spyOn(linkTreeApi, "deleteLinkTree").mockResolvedValue("LinkTree dihapus");
+      const successSpy = vi.spyOn(toolsHelper, "showSuccessDialog").mockImplementation(() => {});
+
+      await store.asyncSetIsLinkTreeDelete(1);
+
+      expect(successSpy).toHaveBeenCalledWith("LinkTree dihapus");
+      expect(store.isLinkTreeDeleted).toBe(true);
+      expect(store.isLinkTreeDelete).toBe(true);
+    });
+
+    it("should use fallback success message if empty", async () => {
+      const store = useLinkTreesStore();
+      vi.spyOn(linkTreeApi, "deleteLinkTree").mockResolvedValue("");
+      const successSpy = vi.spyOn(toolsHelper, "showSuccessDialog").mockImplementation(() => {});
+
+      await store.asyncSetIsLinkTreeDelete(1);
+
+      expect(successSpy).toHaveBeenCalledWith("LinkTree berhasil dihapus!");
+    });
+
+    it("should show error dialog and set flags on failure", async () => {
+      const store = useLinkTreesStore();
+      vi.spyOn(linkTreeApi, "deleteLinkTree").mockRejectedValue(new Error("Gagal hapus"));
+      const errorSpy = vi.spyOn(toolsHelper, "showErrorDialog").mockImplementation(() => {});
+
+      await store.asyncSetIsLinkTreeDelete(1);
+
+      expect(errorSpy).toHaveBeenCalledWith("Gagal hapus");
+      expect(store.isLinkTreeDeleted).toBe(false);
+      expect(store.isLinkTreeDelete).toBe(true);
+    });
   });
 });

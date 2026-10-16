@@ -1,54 +1,54 @@
 <script>
-  import { onMount } from "svelte";
-  import { currentPath, navigate, resolveRoute } from "./router.js";
-  import { authProfile, isPreload, loadProfile } from "./features/auth/states/authStore.js";
+  import { currentRoute, currentPath } from "./router";
+  import apiHelper from "./helpers/apiHelper";
   import AuthLayout from "./features/auth/layouts/AuthLayout.svelte";
+  import LinkTreeLayout from "./features/linktrees/layouts/LinkTreeLayout.svelte";
   import LoginPage from "./features/auth/pages/LoginPage.svelte";
   import RegisterPage from "./features/auth/pages/RegisterPage.svelte";
-  import LinkTreeLayout from "./features/linktrees/layouts/LinkTreeLayout.svelte";
   import HomePage from "./features/linktrees/pages/HomePage.svelte";
   import DetailPage from "./features/linktrees/pages/DetailPage.svelte";
   import UsersPage from "./features/users/pages/UsersPage.svelte";
   import ProfilePage from "./features/users/pages/ProfilePage.svelte";
   import NotFoundPage from "./features/common/pages/NotFoundPage.svelte";
 
-  const pages = {
-    login: LoginPage,
-    register: RegisterPage,
-    home: HomePage,
-    detail: DetailPage,
-    users: UsersPage,
-    profile: ProfilePage,
-    notFound: NotFoundPage,
-  };
+  function checkToken() {
+    try {
+      return !!apiHelper.getAccessToken();
+    } catch {
+      return false;
+    }
+  }
 
-  const route = $derived(resolveRoute($currentPath));
-  const Page = $derived(pages[route.name]);
-
-  onMount(() => {
-    loadProfile();
-  });
-
-  // Penjaga rute: tamu diarahkan ke login, pengguna login diarahkan ke beranda.
-  $effect(() => {
-    if ($isPreload) return;
-    if (route.layout === "auth" && $authProfile) navigate("/", true);
-    if (route.layout === "app" && !$authProfile) navigate("/auth/login", true);
-  });
+  $: tokenExists = checkToken();
+  $: activePath = $currentPath || window.location.pathname;
+  $: routeName = $currentRoute?.name || "home";
+  $: routeLayout = $currentRoute?.layout || "linkTree";
 </script>
 
-{#if $isPreload}
-  <main>
-    <h1 class="py-20 text-center text-base font-normal text-slate-600">Memuat...</h1>
-  </main>
-{:else if route.layout === "auth" && !$authProfile}
+{#if activePath === "/auth/register" || routeName === "register"}
   <AuthLayout>
-    <Page />
+    <RegisterPage />
   </AuthLayout>
-{:else if route.layout === "app" && $authProfile}
+{:else if activePath === "/auth/login" || routeName === "login" || (!tokenExists && routeLayout === "auth")}
+  <AuthLayout>
+    <LoginPage />
+  </AuthLayout>
+{:else if activePath === "/" || routeName === "home"}
   <LinkTreeLayout>
-    <Page {...route.params} />
+    <HomePage />
   </LinkTreeLayout>
-{:else if route.layout === "plain"}
-  <Page />
+{:else if activePath.startsWith("/link-trees") || activePath.startsWith("/todos") || routeName === "linkTree-detail"}
+  <LinkTreeLayout>
+    <DetailPage params={$currentRoute?.params || {}} />
+  </LinkTreeLayout>
+{:else if activePath === "/users" || routeName === "users"}
+  <LinkTreeLayout>
+    <UsersPage />
+  </LinkTreeLayout>
+{:else if activePath === "/profile" || routeName === "profile"}
+  <LinkTreeLayout>
+    <ProfilePage />
+  </LinkTreeLayout>
+{:else}
+  <NotFoundPage />
 {/if}

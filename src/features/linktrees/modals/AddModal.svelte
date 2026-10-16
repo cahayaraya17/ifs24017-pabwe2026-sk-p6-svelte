@@ -1,72 +1,102 @@
-<script>
-  import Modal from "../../common/components/Modal.svelte";
-  import { useInput } from "../../../hooks/useInput.js";
-  import { showWarningDialog } from "../../../helpers/toolsHelper.js";
-  import { TYPE_OPTIONS } from "../linkTreeTypes.js";
-  import { addLinkTree, isAdding } from "../states/linkTreesStore.js";
+﻿<script>
+  import { createEventDispatcher } from "svelte";
+  import { Plus, X, LoaderCircle } from "lucide-svelte";
+  import { asyncSetIsLinkTreeAdd } from "../states/linkTreesStore";
+  import MarkdownEditor from "../components/MarkdownEditor.svelte";
 
-  let { onclose, options = TYPE_OPTIONS } = $props();
+  export let show = false;
+  const dispatch = createEventDispatcher();
 
-  const title = useInput("");
-  const type = useInput("public");
-  const description = useInput("");
+  let title = "";
+  let type = "public";
+  let description = "";
+  let isSubmitting = false;
 
-  async function submit(event) {
-    event.preventDefault();
-    if (!$title.trim()) {
-      await showWarningDialog("Judul wajib diisi");
-      return;
+  function closeModal() {
+    title = "";
+    type = "public";
+    description = "";
+    dispatch("close");
+  }
+
+  async function handleSubmit() {
+    if (!title.trim()) return;
+    isSubmitting = true;
+    const success = await asyncSetIsLinkTreeAdd(title, type, description);
+    isSubmitting = false;
+    if (success) {
+      closeModal();
     }
-    const ok = await addLinkTree({
-      title: $title.trim(),
-      type: $type,
-      description: $description,
-    });
-    if (ok) onclose();
   }
 </script>
 
-<Modal title="Tambah Link Tree" {onclose}>
-  <form onsubmit={submit} class="space-y-4">
-    <div>
-      <label for="add-title" class="mb-1 block text-sm font-medium">Judul</label>
-      <input
-        id="add-title"
-        type="text"
-        value={$title}
-        oninput={title.onChange}
-        class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-      />
+{#if show}
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div class="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800">
+      <div class="flex items-center justify-between border-b pb-3 dark:border-gray-700">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Tambah Link Tree</h3>
+        <button type="button" class="text-gray-400 hover:text-gray-500" on:click={closeModal}>
+          <X class="h-5 w-5" />
+        </button>
+      </div>
+
+      <form on:submit|preventDefault={handleSubmit} class="mt-4 space-y-4">
+        <div>
+          <label for="add-title" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Judul</label>
+          <input
+            id="add-title"
+            type="text"
+            bind:value={title}
+            required
+            class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+            placeholder="Judul Link Tree"
+            disabled={isSubmitting}
+          />
+        </div>
+
+        <div>
+          <label for="add-type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tipe</label>
+          <select
+            id="add-type"
+            bind:value={type}
+            class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+            disabled={isSubmitting}
+          >
+            <option value="public">Public</option>
+            <option value="unlisted">Unlisted</option>
+            <option value="private">Private</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="add-description" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Deskripsi</label>
+          <MarkdownEditor bind:value={description} placeholder="Deskripsi Link Tree..." />
+        </div>
+
+        <div class="flex justify-end gap-2 pt-4">
+          <button
+            type="button"
+            class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+            on:click={closeModal}
+            disabled={isSubmitting}
+          >
+            Batal
+          </button>
+          <button
+            type="submit"
+            class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            disabled={isSubmitting}
+          >
+            {#if isSubmitting}
+              <LoaderCircle class="mr-2 h-4 w-4 animate-spin" />
+              Menyimpan...
+            {:else}
+              <Plus class="mr-2 h-4 w-4" />
+              Simpan
+            {/if}
+          </button>
+        </div>
+      </form>
     </div>
-    <div>
-      <label for="add-type" class="mb-1 block text-sm font-medium">Tipe</label>
-      <select
-        id="add-type"
-        value={$type}
-        onchange={type.onChange}
-        class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-      >
-        {#each options as option (option.value)}
-          <option value={option.value}>{option.label}</option>
-        {/each}
-      </select>
-    </div>
-    <div>
-      <label for="add-description" class="mb-1 block text-sm font-medium">Deskripsi</label>
-      <textarea
-        id="add-description"
-        rows="3"
-        value={$description}
-        oninput={description.onChange}
-        class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-      ></textarea>
-    </div>
-    <button
-      type="submit"
-      disabled={$isAdding}
-      class="w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
-    >
-      {$isAdding ? "Menyimpan..." : "Simpan"}
-    </button>
-  </form>
-</Modal>
+  </div>
+{/if}
