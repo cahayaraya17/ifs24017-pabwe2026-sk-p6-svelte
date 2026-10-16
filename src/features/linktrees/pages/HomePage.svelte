@@ -73,7 +73,7 @@
 <div class="space-y-6">
   <div class="flex items-center justify-between border-b border-rose-100 pb-4 dark:border-slate-800">
     <div>
-      <h2 class="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">Daftar LinkTrees</h2>
+      <h1 class="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">Daftar LinkTrees</h1>
       <p class="text-xs text-slate-500 dark:text-slate-400">Jelajahi dan kelola tautan publik dan pribadi Anda.</p>
     </div>
   </div>
@@ -85,8 +85,8 @@
         <Globe class="h-6 w-6" />
       </div>
       <div>
-        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Public</p>
-        <h4 class="text-2xl font-extrabold text-slate-800 dark:text-white">{publicCount}</h4>
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Public</p>
+        <p class="text-2xl font-extrabold text-slate-800 dark:text-white">{publicCount}</p>
       </div>
     </div>
 
@@ -95,8 +95,8 @@
         <EyeOff class="h-6 w-6" />
       </div>
       <div>
-        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Unlisted</p>
-        <h4 class="text-2xl font-extrabold text-slate-800 dark:text-white">{unlistedCount}</h4>
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Unlisted</p>
+        <p class="text-2xl font-extrabold text-slate-800 dark:text-white">{unlistedCount}</p>
       </div>
     </div>
 
@@ -105,8 +105,8 @@
         <Lock class="h-6 w-6" />
       </div>
       <div>
-        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Private</p>
-        <h4 class="text-2xl font-extrabold text-slate-800 dark:text-white">{privateCount}</h4>
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Private</p>
+        <p class="text-2xl font-extrabold text-slate-800 dark:text-white">{privateCount}</p>
       </div>
     </div>
   </div>
@@ -160,7 +160,7 @@
     <div class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-rose-200 bg-rose-50/20 p-16 text-center dark:border-slate-800">
       <Globe class="h-10 w-10 text-pink-300" />
       <p class="mt-3 text-sm font-semibold text-slate-700 dark:text-slate-200">Tidak ada Link Tree yang ditemukan.</p>
-      <p class="text-xs text-slate-400">Mulai buat Link Tree pertama Anda dengan tombol di atas.</p>
+      <p class="text-xs text-slate-500">Mulai buat Link Tree pertama Anda dengan tombol di atas.</p>
     </div>
   {:else}
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -181,9 +181,9 @@
           <div class="p-5 flex-1 flex flex-col justify-between">
             <div>
               <div class="flex items-start justify-between gap-2">
-                <h3 class="text-base font-bold text-slate-800 group-hover:text-pink-600 transition dark:text-slate-100 line-clamp-1">
+                <h2 class="text-base font-bold text-slate-800 group-hover:text-pink-600 transition dark:text-slate-100 line-clamp-1">
                   {item.title}
-                </h3>
+                </h2>
                 <span
                   class="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider {
                     item.type === 'public'
@@ -205,7 +205,7 @@
             </div>
 
             <div class="mt-5 border-t border-rose-50 pt-3 dark:border-slate-800">
-              <div class="flex items-center justify-between text-xs text-slate-400">
+              <div class="flex items-center justify-between text-xs text-slate-500">
                 <div class="flex items-center gap-1.5 min-w-0">
                   <User class="h-3.5 w-3.5 shrink-0 text-pink-500" />
                   <span class="truncate font-medium text-slate-600 dark:text-slate-300">

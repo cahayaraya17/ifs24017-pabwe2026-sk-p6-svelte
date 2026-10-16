@@ -42,7 +42,7 @@
       <h1 class="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">Semua Pengguna</h1>
       <p class="text-xs text-slate-500 dark:text-slate-400">Daftar akun pengguna yang terdaftar di dalam sistem.</p>
     </div>
-    <span class="inline-flex items-center gap-1.5 self-start rounded-full border border-pink-200 bg-pink-50 px-3 py-1 text-xs font-semibold text-pink-600 dark:border-pink-900/40 dark:bg-pink-950/30 dark:text-pink-300">
+    <span class="inline-flex items-center gap-1.5 self-start rounded-full border border-pink-200 bg-pink-50 px-3 py-1 text-xs font-semibold text-pink-700 dark:border-pink-900/40 dark:bg-pink-950/30 dark:text-pink-300">
       <Users class="h-3.5 w-3.5" />
       {`Total: ${list.length} Pengguna`}
     </span>
@@ -60,14 +60,14 @@
   </div>
 
   {#if isUsersLoading}
-    <div class="flex items-center justify-center p-12 text-slate-400">
+    <div class="flex items-center justify-center p-12 text-slate-500">
       <p class="text-sm">Memuat daftar pengguna...</p>
     </div>
   {:else if filteredUsers.length === 0}
     <div class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-rose-200 bg-rose-50/30 p-12 text-center dark:border-slate-800 dark:bg-slate-900/50">
       <Users class="h-10 w-10 text-pink-300" />
       <p class="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">Tidak ada data pengguna ditemukan.</p>
-      <p class="text-xs text-slate-400">Coba kata kunci pencarian yang lain.</p>
+      <p class="text-xs text-slate-500">Coba kata kunci pencarian yang lain.</p>
     </div>
   {:else}
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -87,9 +87,9 @@
             {/if}
 
             <div class="min-w-0 flex-1">
-              <h3 class="truncate text-sm font-bold text-slate-800 group-hover:text-pink-600 transition dark:text-slate-100">
+              <h2 class="truncate text-sm font-bold text-slate-800 group-hover:text-pink-600 transition dark:text-slate-100">
                 {user.name || "Pengguna"}
-              </h3>
+              </h2>
               <p class="mt-0.5 flex items-center gap-1.5 truncate text-xs text-slate-500 dark:text-slate-400">
                 <Mail class="h-3.5 w-3.5 shrink-0 text-pink-400" />
                 <span class="truncate">{user.email}</span>
@@ -97,10 +97,10 @@
             </div>
           </div>
 
-          <div class="mt-4 flex items-center justify-between border-t border-rose-50 pt-3 text-[11px] text-slate-400 dark:border-slate-800">
-            <span class="font-mono text-pink-500/80">{`ID: #${user.id}`}</span>
+          <div class="mt-4 flex items-center justify-between border-t border-rose-50 pt-3 text-[11px] text-slate-500 dark:border-slate-800">
+            <span class="font-mono text-pink-700">{`ID: #${user.id}`}</span>
             <span class="flex items-center gap-1">
-              <Calendar class="h-3 w-3 text-slate-400" />
+              <Calendar class="h-3 w-3 text-slate-500" />
               {user.created_at ? formatDate(user.created_at) : "-"}
             </span>
           </div>

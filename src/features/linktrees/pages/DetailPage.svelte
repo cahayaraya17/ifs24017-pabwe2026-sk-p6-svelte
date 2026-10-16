@@ -164,7 +164,7 @@
           {#each linkTree.items as item (item.id)}
             <div class="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
               <div class="min-w-0 flex-1 pr-4">
-                <h4 class="truncate font-semibold text-gray-900 dark:text-white">{item.title}</h4>
+                <h3 class="truncate font-semibold text-gray-900 dark:text-white">{item.title}</h3>
                 <a
                   href={item.url}
                   target="_blank"

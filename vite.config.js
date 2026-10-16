@@ -22,6 +22,7 @@ export default defineConfig(({ mode }) => {
       port: Number(env.APP_PORT) || 3004,
     },
     build: {
+      sourcemap: true,
       chunkSizeWarningLimit: 1500,
     },
     define: {

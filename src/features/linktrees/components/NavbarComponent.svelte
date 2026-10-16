@@ -65,7 +65,7 @@
         <span class="block text-base font-bold bg-gradient-to-r from-pink-600 to-rose-500 bg-clip-text text-transparent">
           Delcom LinkTree
         </span>
-        <span class="block text-[10px] text-slate-400 -mt-1 font-medium">Link in bio</span>
+        <span class="block text-[10px] text-slate-500 -mt-1 font-medium">Link in bio</span>
       </div>
     </button>
   </div>
@@ -99,7 +99,7 @@
         </p>
       </div>
 
-      <ChevronDown class="h-4 w-4 text-slate-400 transition-transform duration-200 {isDropdownOpen ? 'rotate-180' : ''}" />
+      <ChevronDown class="h-4 w-4 text-slate-500 transition-transform duration-200 {isDropdownOpen ? 'rotate-180' : ''}" />
     </button>
 
     {#if isDropdownOpen}

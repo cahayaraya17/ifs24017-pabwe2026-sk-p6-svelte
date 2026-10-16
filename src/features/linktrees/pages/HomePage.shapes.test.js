@@ -101,7 +101,7 @@ describe("HomePage - bentuk isi store", () => {
     ]);
     render(HomePage);
     const angka = (label) =>
-      screen.getByText(label).parentElement.querySelector("h4").textContent.trim();
+      screen.getByText(label).parentElement.querySelector("p.text-2xl").textContent.trim();
     expect(angka("Public")).toBe("2");
     expect(angka("Unlisted")).toBe("1");
     expect(angka("Private")).toBe("1");
