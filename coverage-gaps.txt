@@ -1,0 +1,88 @@
+﻿
+=== src\App.svelte ===
+LINE     18:       return false;
+BRANCH   23:   $: activePath = $currentPath || (typeof window !== "undefined" ? window.location.pathname : "/");
+BRANCH   23:   $: activePath = $currentPath || (typeof window !== "undefined" ? window.location.pathname : "/");
+BRANCH   23:   $: activePath = $currentPath || (typeof window !== "undefined" ? window.location.pathname : "/");
+BRANCH   24:   $: routeName = $currentRoute?.name || "home";
+BRANCH   25:   $: routeLayout = $currentRoute?.layout || "linkTree";
+BRANCH   42:     <DetailPage params={$currentRoute?.params || {}} />
+BRANCH   32: {:else if activePath === "/auth/login" || routeName === "login" || (!tokenExists && routeLayout === "auth")}
+
+=== src\router.js ===
+
+=== src\features\auth\api\authApi.js ===
+
+=== src\features\auth\layouts\AuthLayout.svelte ===
+
+=== src\features\auth\pages\LoginPage.svelte ===
+
+=== src\features\auth\pages\RegisterPage.svelte ===
+
+=== src\features\auth\states\authStore.js ===
+
+=== src\features\common\pages\NotFoundPage.svelte ===
+
+=== src\features\linktrees\api\linkTreeApi.js ===
+
+=== src\features\linktrees\components\MarkdownEditor.svelte ===
+
+=== src\features\linktrees\components\MarkdownViewer.svelte ===
+
+=== src\features\linktrees\components\NavbarComponent.svelte ===
+LINE     16:     navigate("/");
+BRANCH   26:     if (onLogout) onLogout();
+BRANCH   84:           alt={profile.name || "User"}
+
+=== src\features\linktrees\components\SidebarComponent.svelte ===
+BRANCH   11:     if (onCloseMobile) onCloseMobile();
+BRANCH   15:     if (onCloseMobile) onCloseMobile();
+
+=== src\features\linktrees\layouts\LinkTreeLayout.svelte ===
+
+=== src\features\linktrees\modals\AddModal.svelte ===
+LINE     61:             bind:value={type}
+BRANCH   27:     if (success) {
+
+=== src\features\linktrees\modals\ChangeCoverModal.svelte ===
+
+=== src\features\linktrees\modals\ChangeModal.svelte ===
+LINE     65:             bind:value={type}
+BRANCH   27:     if (!title.trim() || !linkTree?.id) return;
+BRANCH   31:     if (success) {
+BRANCH   17:     title = linkTree.title || "";
+
+=== src\features\linktrees\modals\ItemModal.svelte ===
+BRANCH   31:     if (!title.trim() || !url.trim() || !linkTreeId) return;
+BRANCH   36:     if (success) {
+BRANCH   17:     title = item.title || "";
+BRANCH   18:     url = item.url || "";
+
+=== src\features\linktrees\pages\DetailPage.svelte ===
+BRANCH  160:           {#each linkTree.items as item (item.id)}
+
+=== src\features\linktrees\pages\HomePage.svelte ===
+BRANCH   43:   $: list = Array.isArray($linkTreesStore)
+
+=== src\features\linktrees\states\link-treesStore.js ===
+
+=== src\features\linktrees\states\linkTreesStore.js ===
+
+=== src\features\users\api\userApi.js ===
+
+=== src\features\users\pages\ProfilePage.svelte ===
+
+=== src\features\users\pages\UsersPage.svelte ===
+BRANCH   21:     if (!u) return false;
+BRANCH   67:       {#each filteredUsers as user (user.id)}
+BRANCH   18:   $: list = Array.isArray($usersStore?.users) ? $usersStore.users : [];
+
+=== src\features\users\states\usersStore.js ===
+
+=== src\helpers\apiHelper.js ===
+BRANCH    2:   typeof DELCOM_BASEURL !== "undefined"
+
+=== src\helpers\toolsHelper.js ===
+BRANCH   77:   const baseUrl = (typeof DELCOM_BASEURL !== "undefined" ? DELCOM_BASEURL : "https://open-api.delcom.org/api/v1")
+
+=== src\hooks\useInput.js ===
