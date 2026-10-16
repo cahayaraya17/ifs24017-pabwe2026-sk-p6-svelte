@@ -1,89 +1,57 @@
-const DEFAULT_BASE_URL = "https://open-api.delcom.org/api/v1";
-
-export function getBaseUrl() {
-  return typeof DELCOM_BASEURL !== "undefined"
-    ? DELCOM_BASEURL
-    : DEFAULT_BASE_URL;
-}
+const ACCESS_TOKEN_KEY = "accessToken";
 
 export function getAccessToken() {
-  if (typeof window === "undefined" || !window.localStorage) return null;
-  return localStorage.getItem("accessToken");
+  return localStorage.getItem(ACCESS_TOKEN_KEY);
 }
 
 export function putAccessToken(token) {
-  if (typeof window === "undefined" || !window.localStorage) return;
-  if (!token) {
-    localStorage.removeItem("accessToken");
-  } else {
-    localStorage.setItem("accessToken", token);
-  }
+  localStorage.setItem(ACCESS_TOKEN_KEY, token);
 }
 
-export async function fetchData(endpoint, options = {}) {
-  const cleanBase = getBaseUrl().replace(/\/+$/, "");
-  let cleanEndpoint = endpoint || "";
-  if (cleanEndpoint.startsWith("/")) {
-    cleanEndpoint = cleanEndpoint.slice(1);
-  }
-  cleanEndpoint = cleanEndpoint.replace(/\/+$/, "");
+export function removeAccessToken() {
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+}
 
-  const url = cleanEndpoint.startsWith("http")
-    ? cleanEndpoint
-    : `${cleanBase}/${cleanEndpoint}`;
-
-  const headers = { ...options.headers };
+/**
+ * Pembungkus fetch ke Delcom Open API.
+ * Selalu mengembalikan objek JSON { status, message, data }.
+ * Kegagalan jaringan / respons non-JSON diubah menjadi { status: "fail" }.
+ */
+export async function apiRequest(
+  path,
+  { method = "GET", body, formData, auth = true } = {}
+) {
+  const headers = { Accept: "application/json" };
   const token = getAccessToken();
 
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+  if (auth && token) {
+    headers.Authorization = `Bearer ${token}`;
   }
 
-  if (!(options.body instanceof FormData) && !headers["Content-Type"] && options.method && options.method !== "GET") {
+  let payload;
+  if (formData) {
+    payload = formData;
+  } else if (body) {
     headers["Content-Type"] = "application/json";
+    payload = JSON.stringify(body);
   }
 
-  const config = {
-    ...options,
-    headers,
-  };
-
-  return await fetch(url, config);
-}
-
-async function request(endpoint, options = {}) {
-  const response = await fetchData(endpoint, options);
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    const error = new Error(data.message || `Request failed with status ${response.status}`);
-    error.status = response.status;
-    error.data = data;
-    throw error;
+  try {
+    const response = await fetch(`${DELCOM_API_URL}${path}`, {
+      method,
+      headers,
+      body: payload,
+    });
+    return await response.json();
+  } catch {
+    return { status: "fail", message: "Gagal terhubung ke server" };
   }
-
-  return data;
 }
 
-export const apiHelper = {
-  fetchData,
-  get: (endpoint, options) => request(endpoint, { ...options, method: "GET" }),
-  post: (endpoint, body, options) =>
-    request(endpoint, {
-      ...options,
-      method: "POST",
-      body: body instanceof FormData ? body : JSON.stringify(body),
-    }),
-  put: (endpoint, body, options) =>
-    request(endpoint, {
-      ...options,
-      method: "PUT",
-      body: body instanceof FormData ? body : JSON.stringify(body),
-    }),
-  delete: (endpoint, options) =>
-    request(endpoint, { ...options, method: "DELETE" }),
-  getAccessToken,
-  putAccessToken,
-};
-
-export default apiHelper;
+/** Gabungkan pesan utama dengan detail validasi per field (bila ada). */
+export function getErrorMessage(res) {
+  const details = Object.values(res.data ?? {})
+    .flat()
+    .join("\n");
+  return details ? `${res.message}\n${details}` : res.message;
+}
