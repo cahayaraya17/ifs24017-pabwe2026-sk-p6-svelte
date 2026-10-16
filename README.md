@@ -26,7 +26,14 @@ Tanpa itu aplikasi memakai `https://open-api.delcom.org/api/v1`.
 `Jenkinsfile`: Install, Test (coverage), Trivy, SonarQube, Quality Gate, Package, Publish, Deploy.
 Konfigurasi Sonar ada di `sonar-project.properties`.
 
+## Proxy API (production)
+Build production mengirim request API ke `/delcom-api/...` (satu origin dengan situs),
+lalu `vercel.json` meneruskannya ke `https://open-api.delcom.org/api/v1/...`.
+Dengan begitu tidak ada request lintas-origin (CORS/preflight) dari browser.
+Saat `dev`/test, aplikasi tetap memanggil `VITE_DELCOM_BASEURL` secara langsung;
+`bun run preview` memakai proxy bawaan Vite untuk `/delcom-api`.
+
 ## Deploy ke Vercel
-`vercel.json` mengarahkan semua path ke `index.html` (SPA), jadi `/auth/login`
+`vercel.json` memproxy `/delcom-api` dan mengarahkan path lain ke `index.html` (SPA), jadi `/auth/login`
 dan `/link-trees/4` bisa dibuka langsung / di-refresh.
 Build command: `bun run build`, output directory: `dist`.

@@ -1,7 +1,7 @@
-import apiHelper from "../../../helpers/apiHelper";
+import apiHelper, { getBaseUrl } from "../../../helpers/apiHelper";
 
 const userApi = (() => {
-  const BASE_URL = `${DELCOM_BASEURL}/users`;
+  const BASE_URL = `${getBaseUrl()}/users`;
 
   function _url(path) {
     return BASE_URL + path;

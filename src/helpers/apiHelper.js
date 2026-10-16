@@ -1,6 +1,9 @@
 const DEFAULT_BASE_URL = "https://open-api.delcom.org/api/v1";
 
+// DELCOM_API_URL hanya didefinisikan pada build production ("/delcom-api"),
+// yaitu proxy same-origin di Vercel agar request tidak lintas-origin (CORS).
 export function getBaseUrl() {
+  if (typeof DELCOM_API_URL !== "undefined") return DELCOM_API_URL;
   return typeof DELCOM_BASEURL !== "undefined"
     ? DELCOM_BASEURL
     : DEFAULT_BASE_URL;
@@ -22,15 +25,14 @@ export function putAccessToken(token) {
 
 export async function fetchData(endpoint, options = {}) {
   const cleanBase = getBaseUrl().replace(/\/+$/, "");
-  let cleanEndpoint = endpoint || "";
-  if (cleanEndpoint.startsWith("/")) {
-    cleanEndpoint = cleanEndpoint.slice(1);
-  }
-  cleanEndpoint = cleanEndpoint.replace(/\/+$/, "");
+  const rawEndpoint = (endpoint || "").replace(/\/+$/, "");
+  const isFullUrl =
+    rawEndpoint.startsWith("http") || rawEndpoint.startsWith(`${cleanBase}/`);
+  const cleanEndpoint = rawEndpoint.startsWith("/")
+    ? rawEndpoint.slice(1)
+    : rawEndpoint;
 
-  const url = cleanEndpoint.startsWith("http")
-    ? cleanEndpoint
-    : `${cleanBase}/${cleanEndpoint}`;
+  const url = isFullUrl ? rawEndpoint : `${cleanBase}/${cleanEndpoint}`;
 
   const headers = { ...options.headers };
   const token = getAccessToken();

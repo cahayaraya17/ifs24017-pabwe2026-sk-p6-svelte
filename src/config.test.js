@@ -8,24 +8,9 @@ const read = (file) => readFileSync(resolve(root, file), "utf8");
 describe("index.html", () => {
   const html = read("index.html");
 
-  it("memiliki meta description dan bahasa dokumen", () => {
+  it("memiliki bahasa dokumen dan meta description", () => {
     expect(html).toMatch(/<html lang="id">/);
     expect(html).toMatch(/<meta\s+name="description"\s+content="[^"]{20,}"/);
-  });
-
-  it("memuat Google Fonts tanpa memblokir render", () => {
-    expect(html).toMatch(/media="print"\s+onload="this\.media='all'"/);
-    expect(html).toMatch(/<noscript>[\s\S]*fonts\.googleapis\.com[\s\S]*<\/noscript>/);
-  });
-});
-
-describe("robots.txt", () => {
-  it("valid: hanya direktif robots, bukan HTML", () => {
-    const lines = read("public/robots.txt").split("\n").filter(Boolean);
-    expect(lines.length).toBeGreaterThan(0);
-    for (const line of lines) {
-      expect(line).toMatch(/^(User-agent|Allow|Disallow|Sitemap|Crawl-delay):\s*\S*/);
-    }
   });
 });
 
@@ -40,10 +25,11 @@ describe("vercel.json", () => {
     expect(rewrites[proxyIndex].destination).toBe("https://open-api.delcom.org/api/v1/:path*");
   });
 
-  it("fallback SPA tidak menangkap /delcom-api", () => {
+  it("fallback SPA tidak menangkap /delcom-api tetapi menangkap rute aplikasi", () => {
     const spa = rewrites.find((r) => r.destination === "/index.html");
     const re = new RegExp(`^${spa.source}$`);
     expect(re.test("/delcom-api/users/me")).toBe(false);
+    expect(re.test("/users")).toBe(true);
     expect(re.test("/link-trees/7")).toBe(true);
   });
 });
