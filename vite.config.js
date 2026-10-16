@@ -1,4 +1,4 @@
-﻿import { defineConfig, loadEnv } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { svelteTesting } from "@testing-library/svelte/vite";
 import tailwindcss from "@tailwindcss/vite";
@@ -21,26 +21,16 @@ export default defineConfig(({ mode }) => {
     },
     preview: {
       port: Number(env.APP_PORT) || 3004,
-      proxy: {
-        "/delcom-api": {
-          target: new URL(baseUrl).origin,
-          changeOrigin: true,
-          rewrite: (path) =>
-            path.replace(/^\/delcom-api/, new URL(baseUrl).pathname.replace(/\/+$/, "")),
-        },
-      },
     },
     build: {
-      sourcemap: true,
       chunkSizeWarningLimit: 1500,
     },
     define: {
-      // Dipakai untuk URL gambar (absolut).
+      // Dipakai untuk membentuk URL aset (gambar) — selalu absolut.
       DELCOM_BASEURL: JSON.stringify(baseUrl),
-      // Build production: request API lewat proxy same-origin (lihat vercel.json).
-      ...(mode === "production"
-        ? { DELCOM_API_URL: JSON.stringify("/delcom-api") }
-        : {}),
+      // Dipakai untuk request API. Di production lewat proxy same-origin (/delcom-api,
+      // lihat vercel.json) sehingga tidak ada request lintas-origin/CORS preflight.
+      DELCOM_API_URL: JSON.stringify(mode === "production" ? "/delcom-api" : baseUrl),
     },
     test: {
       globals: true,
@@ -68,4 +58,3 @@ export default defineConfig(({ mode }) => {
     },
   };
 });
-

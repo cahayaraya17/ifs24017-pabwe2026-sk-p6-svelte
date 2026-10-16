@@ -1,1 +1,0 @@
-<div data-testid="layout-auth"><slot /></div>
