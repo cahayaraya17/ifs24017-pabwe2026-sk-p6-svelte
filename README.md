@@ -25,3 +25,4 @@ Jangan gunakan `bun test`; gunakan `bun run test` atau `bun x vitest run`.
   (Settings → Environment Variables): `VITE_DELCOM_BASEURL=https://open-api.delcom.org/api/v1`,
   lalu redeploy. Tanpa ini aplikasi memakai `http://localhost:8000/api/v1`.
 - Build command: `bun run build`, output directory: `dist`.
+## update
